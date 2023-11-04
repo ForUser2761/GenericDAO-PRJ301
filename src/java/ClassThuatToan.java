@@ -261,4 +261,20 @@ public class ClassThuatToan {
         int length = input.length();
         return length >= min && length <= max;
     }
+    /**
+     * kiểm tra số nguyên tố
+     * @param number
+     * @return 
+     */
+    public static boolean kiemTraSoNguyenTo(int number) {
+        if (number <= 1) {
+            return false; // 0 and 1 are not prime numbers
+        }
+        for (int i = 2; i <= Math.sqrt(number); i++) {
+            if (number % i == 0) {
+                return false; // Number is divisible by another number, so not prime
+            }
+        }
+        return true; // Number is prime
+    }
 }
