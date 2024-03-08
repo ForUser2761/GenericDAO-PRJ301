@@ -2,10 +2,12 @@
  * Copyright (C) FPT University , Ltd. 2023	
  * 30/09/2023 FPT 4USER
  */
-package pe.dal;
+
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import pe.utils.DBUtils;
 
 /**
  *
@@ -32,6 +33,31 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
     // Các constant đại diện cho giá trị true và false trong việc sử dụng OR và AND
     public static final boolean CONDITION_AND = true;
     public static final boolean CONDITION_OR = false;
+    
+    private final Class<T> clazz;
+
+    public GenericDAO_HCM() {
+        // Lấy thông tin kiểu generic từ superclass
+        Type genericSuperclass = getClass().getGenericSuperclass();
+        
+        // Kiểm tra xem genericSuperclass có phải là ParameterizedType
+        if (genericSuperclass instanceof ParameterizedType) {
+            Type[] arguments = ((ParameterizedType) genericSuperclass).getActualTypeArguments();
+            if (arguments != null && arguments.length > 0) {
+                // Kiểm tra an toàn trước khi ép kiểu
+                Type argument = arguments[0];
+                if (argument instanceof Class<?>) {
+                    this.clazz = (Class<T>) argument;
+                } else {
+                    throw new IllegalArgumentException("Không thể xác định loại T");
+                }
+            } else {
+                throw new IllegalArgumentException("Không có đối số kiểu cho GenericDAO");
+            }
+        } else {
+            throw new IllegalArgumentException("Lớp này không phải là một ParameterizedType");
+        }
+    }
 
     /**
      * Hàm này sử dụng để get dữ liệu từ database lên dựa trên tên bảng mà bạn
@@ -41,7 +67,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
      * @param clazz: tên bảng bạn muốn get dữ liệu về
      * @return list
      */
-    protected List<T> queryGenericDAO(Class<T> clazz) {
+    protected List<T> queryGenericDAO() {
         List<T> result = new ArrayList<>();
         try {
             // Lấy kết nối
@@ -60,7 +86,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
             // Duyệt result set   
             while (resultSet.next()) {
                 // Gọi hàm mapRow để map đối tượng
-                T obj = mapRow(resultSet, clazz);
+                T obj = mapRow(resultSet);
 
                 // Thêm vào danh sách kết quả
                 result.add(obj);
@@ -145,7 +171,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
             // Duyệt result set   
             while (resultSet.next()) {
                 // Gọi hàm mapRow để map đối tượng
-                T obj = mapRow(resultSet, clazz);
+                T obj = mapRow(resultSet);
 
                 // Thêm vào danh sách kết quả
                 result.add(obj);
@@ -180,7 +206,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
         return result;
     }
 
-    private static <T> T mapRow(ResultSet rs, Class<T> clazz) throws
+    private <T> T mapRow(ResultSet rs) throws
             SQLException,
             NoSuchMethodException,
             InstantiationException,
@@ -189,7 +215,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
             InvocationTargetException {
 
         // Khởi tạo đối tượng
-        T obj = clazz.getDeclaredConstructor().newInstance();
+        T obj = (T) clazz.getDeclaredConstructor().newInstance();
 
         // Lấy danh sách các field của lớp
         Field[] fields = clazz.getDeclaredFields();
@@ -232,6 +258,9 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
             return rs.getBoolean(fieldName);
         } else if (fieldType == float.class || fieldType == Float.class) {
             return rs.getFloat(fieldName);
+        } else if (fieldType == Character.class || fieldType == char.class) {
+            String s = rs.getString(fieldName);
+            return s.charAt(0);
         } else {
             return rs.getObject(fieldName);
         }
@@ -246,7 +275,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
      * @param parameterMap: hashmap chứa các parameter
      * @return true: update thành công | false: update thất bại
      */
-    protected boolean updateGenericDAO(String sql, Map<String, Object> parameterMap) {
+    protected boolean updateGenericDAO(String sql) {
 
         List<Object> parameters = new ArrayList<>();
 
@@ -302,7 +331,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
      * @param parameterMap: hashmap chứa các parameter
      * @return true: delete thành công | false: delete thất bại
      */
-    protected boolean deleteGenericDAO(String sql, Map<String, Object> parameterMap) throws ClassNotFoundException {
+    protected boolean deleteGenericDAO(String sql) throws ClassNotFoundException {
         List<Object> parameters = new ArrayList<>();
 
         for (Map.Entry<String, Object> entry : parameterMap.entrySet()) {
@@ -452,7 +481,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
         return 0;
     }
 
-    protected void insertGenericDAO(String sql, Map<String, Object> parameterMap) throws SQLException, ClassNotFoundException /**
+    /**
      * Tìm số lượng record của 1 bảng nào đó
      *
      * @param clazz: bảng muốn tìm
@@ -520,7 +549,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
      * @param parameterMap: hashmap chứa các parameter
      * @return số lượng record
      */
-    protected int findTotalRecordGenericDAO(Class<T> clazz, String sql, Map<String, Object> parameterMap) {
+    protected int findTotalRecordGenericDAO(Class<T> clazz, String sql) {
         int total = 0;
         try {
             // Lấy kết nối
@@ -584,7 +613,7 @@ public abstract class GenericDAO_HCM<T> extends DBUtils {
         return total;
     }
 
-    protected void insertGenericDAO(String sql, Map<String, Object> parameterMap) throws SQLException, ClassNotFoundException {
+    protected void insertGenericDAO(String sql) throws SQLException, ClassNotFoundException {
 
         List<Object> parameters = new ArrayList<>();
 
