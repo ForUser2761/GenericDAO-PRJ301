@@ -86,7 +86,8 @@ public class ClassThuatToan {
      * @return
      */
     public static boolean kiemTraNamNhuan(int year) {
-        // A leap year is divisible by 4 but not by 100, unless it is also divisible by 400.
+        // A leap year is divisible by 4 but not by 100, unless it is also divisible by
+        // 400.
         return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
     }
 
@@ -212,11 +213,12 @@ public class ClassThuatToan {
         }
         return reversed;
     }
-    
+
     /**
      * code tính giai thừa 1 số
+     * 
      * @param number
-     * @return 
+     * @return
      */
     public static long tinhGiaiThua(int number) {
         long result = 1;
@@ -225,34 +227,36 @@ public class ClassThuatToan {
         }
         return result;
     }
-    
+
     /**
      * kiểm tra xem đủ tuổi chưa
+     * 
      * @param birthDate
-     * @param age: số tuổi bạn muốn kiểm tra
-     * @return 
+     * @param age:      số tuổi bạn muốn kiểm tra
+     * @return
      */
     public static boolean kiemTraXemDuTuoiChua(Date birthDate, int age) {
         // Get today's date
         Calendar today = Calendar.getInstance();
-        
+
         // Get the date for the birth date
         Calendar birthDay = Calendar.getInstance();
         birthDay.setTime(birthDate);
-        
+
         // Subtract the age from the year field
         birthDay.add(Calendar.YEAR, age);
-        
+
         // Check if the birth day after adding the age is before or equal to today
         return !birthDay.after(today);
     }
-    
+
     /**
      * kiểm tra xem chuỗi truyền vào có đủ số lượng kí tự từ min tới max hay không
+     * 
      * @param input
      * @param min
      * @param max
-     * @return 
+     * @return
      */
     public static boolean kiemTraXemCoDuSoLuongKiTuKhong(String input, int min, int max) {
         if (input == null) {
@@ -261,10 +265,12 @@ public class ClassThuatToan {
         int length = input.length();
         return length >= min && length <= max;
     }
+
     /**
      * kiểm tra số nguyên tố
+     * 
      * @param number
-     * @return 
+     * @return
      */
     public static boolean kiemTraSoNguyenTo(int number) {
         if (number <= 1) {
@@ -276,5 +282,24 @@ public class ClassThuatToan {
             }
         }
         return true; // Number is prime
+    }
+
+    /**
+     * Kiểm tra xem một số có phải là số hoàn hảo không ? 
+     * Ví dụ số 6, 28, 496, 8128
+     * 6 = 1 + 2 + 3
+     * @param a
+     * @return
+     */
+    public static boolean kiemtraSoHoanHao(int a) {
+        int sum = 0;
+        for (int i = 1; i <= a / 2; i++) {
+            if (a % i == 0)
+                // tổng các ước số của a
+                sum += i;
+        }
+        if (sum == a)
+            return true;
+        return false;
     }
 }
