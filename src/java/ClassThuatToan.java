@@ -1,6 +1,8 @@
 
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
@@ -171,6 +173,32 @@ public class ClassThuatToan {
             a = temp;
         }
         return a;
+    }
+    
+    /**
+     * Tìm bội số chung nhỏ nhất của 2 số
+     * @param a
+     * @param b
+     * @return 
+     */
+    public static int timBoiSoChungNhoNhat(int a, int b) {
+        return Math.abs(a * b) / timUocChungLonNhat(a, b);
+    }
+    
+    /**
+     * tìm ra n số là bội chung nhỏ nhât của 2 số num1 và num2
+     * @param num1
+     * @param num2
+     * @param n
+     * @return 
+     */
+    public static List<Integer> findNLCMs(int num1, int num2, int n) {
+        int lcm = timBoiSoChungNhoNhat(num1, num2);
+        List<Integer> lcmList = new ArrayList<>();
+        for (int i = 1; i <= n; i++) {
+            lcmList.add(lcm * i);
+        }
+        return lcmList;
     }
 
     /**
