@@ -21,7 +21,7 @@ import java.util.Map;
  * @param <T>
  */
 public abstract class GenericDAO_HOLA<T> extends DBContext {
-
+    
     protected PreparedStatement statement;
     protected ResultSet resultSet;
     protected Map<String, Object> parameterMap;
@@ -29,7 +29,7 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
     public static final boolean CONDITION_AND = true;
     public static final boolean CONDITION_OR = false;
     private final Class<T> clazz;
-
+    
     public GenericDAO_HOLA() {
         // Lấy thông tin kiểu generic từ superclass
         Type genericSuperclass = getClass().getGenericSuperclass();
@@ -58,11 +58,9 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
      * mong muốn.Hàm sẽ mặc định trả về một List có thể có giá trị hoặc List
      * rỗng
      *
-     * @param clazz: tên bảng bạn muốn get dữ liệu về
      * @return list
      */
     protected List<T> queryGenericDAO() {
-        connection = new DBContext().connection;
         List<T> result = new ArrayList<>();
         try {
             // Lấy kết nối
@@ -71,8 +69,7 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
             StringBuilder sqlBuilder = new StringBuilder();
             sqlBuilder.append("SELECT * FROM ").append(clazz.getSimpleName());
 
-            // Chuẩn bị câu lệnh
-            statement = connection.prepareStatement(sqlBuilder.toString());
+            settingConnect(sqlBuilder.toString());
             // Thực thi truy vấn
             resultSet = statement.executeQuery();
 
@@ -85,7 +82,7 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
                 // Thêm vào danh sách kết quả
                 result.add(obj);
             }
-
+            
             return result;
         } catch (IllegalAccessException
                 | IllegalArgumentException
@@ -93,22 +90,9 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
                 | NoSuchMethodException
                 | InvocationTargetException
                 | SQLException e) {
-            System.err.println("4USER: Bắn Exception ở hàm query: " + e.getMessage());
+            printErrorMethod(e, "queryGenericDAO");
         } finally {
-            try {
-                // Đóng kết nối và các tài nguyên
-                if (resultSet != null) {
-
-                }
-                if (statement != null) {
-                    statement.close();
-                }
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (Exception e) {
-                System.err.println("4USER: Bắn Exception ở hàm query: " + e.getMessage());
-            }
+            closeConnection("queryGenericDAO");
         }
         return result;
     }
@@ -120,13 +104,10 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
      * GenericDAO_HOLA.CONDITION_OR hoặc GenericDAO_HOLA.CONDITION_AND.Hàm sẽ
      * mặc định trả về một List có thể có giá trị hoặc List rỗng
      *
-     * @param clazz:        tên bảng bạn muốn get dữ liệu về
-     * @param sql:          câu lệnh SQL
-     * @param parameterMap: hashmap chứa các parameter
+     * @param sql: câu lệnh SQL
      * @return list
      */
     protected List<T> queryGenericDAO(String sql) {
-        connection = new DBContext().connection;
         List<T> result = new ArrayList<>();
         try {
             // Lấy kết nối
@@ -134,26 +115,11 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
             // List parameter
             List<Object> parameters = new ArrayList<>();
 
-            // Thêm điều kiện
-            if (parameterMap != null && !parameterMap.isEmpty()) {
-                // code thêm điều kiện
-                for (Map.Entry<String, Object> entry : parameterMap.entrySet()) {
-                    Object conditionValue = entry.getValue();
+            parameters = insertParameterToMap(parameters);
 
-                    parameters.add(conditionValue);
-                }
-                // Xóa phần AND hoặc OR cuối cùng khỏi câu truy vấn
-            }
+            settingConnect(sql);
 
-            // Chuẩn bị câu lệnh
-            statement = connection.prepareStatement(sql);
-
-            // Gán giá trị cho các tham số của câu truy vấn
-            int index = 1;
-            for (Object value : parameters) {
-                statement.setObject(index, value);
-                index++;
-            }
+            setParameter(parameters, "queryGenericDAO");
 
             // Thực thi truy vấn
             resultSet = statement.executeQuery();
@@ -167,7 +133,7 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
                 // Thêm vào danh sách kết quả
                 result.add(obj);
             }
-
+            
             return result;
         } catch (IllegalAccessException
                 | IllegalArgumentException
@@ -175,26 +141,13 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
                 | NoSuchMethodException
                 | InvocationTargetException
                 | SQLException e) {
-            System.err.println("4USER: Bắn Exception ở hàm query: " + e.getMessage());
+            printErrorMethod(e, "queryGenericDAO");
         } finally {
-            try {
-                // Đóng kết nối và các tài nguyên
-                if (resultSet != null) {
-
-                }
-                if (statement != null) {
-                    statement.close();
-                }
-                if (connection != null) {
-                    connection.close();
-                }
-            } catch (SQLException e) {
-                System.err.println("4USER: Bắn Exception ở hàm query: " + e.getMessage());
-            }
+            closeConnection("queryGenericDAO");
         }
         return result;
     }
-
+    
     private <T> T mapRow(ResultSet rs) throws SQLException,
             NoSuchMethodException,
             InstantiationException,
@@ -216,7 +169,7 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
             field.setAccessible(true);
             field.set(obj, value);
         }
-
+        
         return obj;
     }
 
@@ -229,7 +182,7 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
      * @throws SQLException
      */
     private static Object getFieldValue(ResultSet rs, Field field) throws SQLException {
-
+        
         Class<?> fieldType = field.getType();
         String fieldName = field.getName();
 
@@ -264,49 +217,25 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
      * tăng
      *
      * @param sql
-     * @param parameterMap: hashmap chứa các parameter
      * @return true: update thành công | false: update thất bại
      */
     protected boolean updateGenericDAO(String sql) {
         List<Object> parameters = new ArrayList<>();
-
-        for (Map.Entry<String, Object> entry : parameterMap.entrySet()) {
-            Object conditionValue = entry.getValue();
-
-            parameters.add(conditionValue);
-        }
-
+        
+        parameters = insertParameterToMap(parameters);
+        
         try {
-            connection = new DBContext().connection;
-            connection.setAutoCommit(false);
-            statement = connection.prepareStatement(sql);
-
-            int index = 1;
-            for (Object value : parameters) {
-                statement.setObject(index, value);
-                index++;
-            }
+            settingConnect(sql);
+            setParameter(parameters, "updateGenericDAO");
+            
             statement.executeUpdate();
             connection.commit();
             return true;
         } catch (SQLException e) {
-            try {
-                connection.rollback();
-            } catch (SQLException ex) {
-                System.err.println("4USER: Bắn Exception ở hàm update: " + ex.getMessage());
-            }
+            printErrorMethod(e, "updateGenericDAO");
             return false;
         } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-                if (statement != null) {
-                    statement.close();
-                }
-            } catch (SQLException e) {
-                System.err.println("4USER: Bắn Exception ở hàm update: " + e.getMessage());
-            }
+            closeConnection("updateGenericDAO");
         }
     }
 
@@ -316,55 +245,31 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
      * tăng
      *
      * @param sql
-     * @param parameterMap: hashmap chứa các parameter
      * @return true: delete thành công | false: delete thất bại
      */
     protected boolean deleteGenericDAO(String sql) {
         List<Object> parameters = new ArrayList<>();
-
-        for (Map.Entry<String, Object> entry : parameterMap.entrySet()) {
-            Object conditionValue = entry.getValue();
-            parameters.add(conditionValue);
-        }
-
+        
+        parameters = insertParameterToMap(parameters);
+        
         try {
-            connection = new DBContext().connection;
-            connection.setAutoCommit(false);
-            statement = connection.prepareStatement(sql);
-
-            int index = 1;
-            for (Object value : parameters) {
-                statement.setObject(index, value);
-                index++;
-            }
+            settingConnect(sql);
+            
+            setParameter(parameters, "deleteGenericDAO");
             statement.executeUpdate();
             connection.commit();
             return true;
         } catch (SQLException e) {
-            try {
-                connection.rollback();
-            } catch (SQLException ex) {
-                System.err.println("4USER: Bắn Exception ở hàm delete: " + ex.getMessage());
-            }
+            printErrorMethod(e, "deleteGenericDAO");
             return false;
         } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-                if (statement != null) {
-                    statement.close();
-                }
-            } catch (SQLException e) {
-                System.err.println("4USER: Bắn Exception ở hàm update: " + e.getMessage());
-            }
+            closeConnection("deleteGenericDAO");
         }
     }
 
     /**
      * Tìm số lượng record của 1 bảng nào đó
      *
-     * @param clazz: bảng muốn tìm
      * @return số lượng record
      */
     protected int findTotalRecordGenericDAO() {
@@ -396,14 +301,14 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
             if (resultSet.next()) {
                 total = resultSet.getInt(1);
             }
-
+            
         } catch (IllegalArgumentException | SQLException e) {
             System.err.println("4USER: Bắn Exception ở hàm findTotalRecord: " + e.getMessage());
         } finally {
             try {
                 // Đóng kết nối và các tài nguyên
                 if (resultSet != null) {
-
+                    
                 }
                 if (statement != null) {
                     statement.close();
@@ -421,8 +326,6 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
     /**
      * Tìm số lượng record của 1 bảng nào đó, điều kiện (optional)
      *
-     * @param clazz:        bảng muốn tìm
-     * @param parameterMap: hashmap chứa các parameter
      * @return số lượng record
      */
     protected int findTotalRecordGenericDAO(String sql) {
@@ -441,7 +344,7 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
                 // code thêm điều kiện
                 for (Map.Entry<String, Object> entry : parameterMap.entrySet()) {
                     Object conditionValue = entry.getValue();
-
+                    
                     parameters.add(conditionValue);
                 }
             }
@@ -464,14 +367,14 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
             if (resultSet.next()) {
                 total = resultSet.getInt(1);
             }
-
+            
         } catch (IllegalArgumentException | SQLException e) {
             System.err.println("4USER: Bắn Exception ở hàm findTotalRecord: " + e.getMessage());
         } finally {
             try {
                 // Đóng kết nối và các tài nguyên
                 if (resultSet != null) {
-
+                    
                 }
                 if (statement != null) {
                     statement.close();
@@ -485,52 +388,89 @@ public abstract class GenericDAO_HOLA<T> extends DBContext {
         }
         return total;
     }
-
+    
     protected void insertGenericDAO(String sql) {
-
+        
         List<Object> parameters = new ArrayList<>();
-
-        for (Map.Entry<String, Object> entry : parameterMap.entrySet()) {
-            Object conditionValue = entry.getValue();
-
-            parameters.add(conditionValue);
-        }
-
+        
+        parameters = insertParameterToMap(parameters);
+        
         try {
-            connection = new DBContext().connection;
-            connection.setAutoCommit(false);
-            statement = connection.prepareStatement(sql);
-
+            settingConnect(sql);
+            setParameter(parameters, "insertGenericDAO");
+            statement.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            printErrorMethod(e, "insertGenericDAO");
+        } finally {
+            closeConnection("insertGenericDAO");
+        }
+    }
+    
+    public void setParameter(List<Object> parameters, String methodName) {
+        try {
             int index = 1;
             for (Object value : parameters) {
                 statement.setObject(index, value);
                 index++;
             }
-            statement.executeUpdate();
-            connection.commit();
+        } catch (Exception e) {
+            printErrorMethod(e, methodName);
+        }
+        
+    }
+    
+    public void closeConnection(String methodName) {
+        try {
+            // Đóng kết nối và các tài nguyên
+            if (resultSet != null) {
+                
+            }
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
+            printErrorMethod(e, methodName);
+        }
+    }
+    
+    public List<Object> insertParameterToMap(List<Object> parameters) {
+        for (Map.Entry<String, Object> entry : parameterMap.entrySet()) {
+            Object conditionValue = entry.getValue();
+            
+            parameters.add(conditionValue);
+        }
+        return parameters;
+    }
+    
+    public void settingConnect(String sql) {
+        try {
+            connection = new DBContext().connection;
+//            connection.setAutoCommit(false);
+            statement = connection.prepareStatement(sql);
+        } catch (SQLException e) {
             try {
                 connection.rollback();
             } catch (SQLException ex) {
-                System.err.println("4USER: Bắn Exception ở hàm update: " + ex.getMessage());
-            }
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-                if (statement != null) {
-                    statement.close();
-                }
-            } catch (SQLException e) {
-                System.err.println("4USER: Bắn Exception ở hàm insert: " + e.getMessage());
+                System.err.println("4USER: Bắn Exception ở hàm settingConnect: " + ex.getMessage());
             }
         }
     }
-
+    
+    public void printErrorMethod(Exception e, String methodName) {
+        e.printStackTrace();
+        try {
+            connection.rollback();
+        } catch (SQLException ex) {
+            System.err.format("4USER: Bắn Exception ở hàm %s: " + ex.getMessage(), methodName);
+        }
+    }
+    
     public abstract List<T> findAll();
-
+    
     public abstract int insert(T t);
-
+    
 }
